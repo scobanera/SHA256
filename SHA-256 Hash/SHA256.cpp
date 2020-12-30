@@ -4,6 +4,9 @@
 
 using std::cout;
 using std::endl;
+using std::hex;
+using std::uppercase;
+
 
 void print_binary(uint32_t value) {
 	for (int8_t pos = 31; pos >= 0; pos--) {
@@ -30,6 +33,21 @@ void print_block(Block block) {
 	}
 	cout << endl;
 }
+
+std::string SHA256::hash(std::string input) {
+	// Preprocessing stage.
+	add_pading(input);
+	parse_message(input);
+
+	// Hash computation.
+	compute_hash();
+
+	return input.append("Here will go the resulting hash.");
+}
+
+// ======================================================
+// Preprocessing.
+// ======================================================
 
 void SHA256::add_pading(std::string &input) {
 	uint64_t message_bits = input.size() * 8;
@@ -77,26 +95,118 @@ void SHA256::parse_message(std::string& input) {
 
 			// Every 16 processed words we have a new 512-bits block.
 			if (processed_words == 16) {
-				input_message.push_back(current_block);
+				message_blocks.push_back(current_block);
 				processed_words = 0;
 				current_block = {};
 			}
 		}
 	}
 
-	for (const auto& block : input_message) {
+	for (const auto& block : message_blocks) {
 		print_block(block);
 	}
 }
 
-std::string SHA256::hash(std::string input) {
-	// Preprocessing stage.
-	add_pading(input);
-	parse_message(input);
+// ======================================================
+// Hash Computation.
+// ======================================================
 
-	// Hash computation.
-	// Here will be the hash computation.
+void SHA256::compute_hash() {
+	uint32_t H[8] = { 0 };
 
-	return input.append("Here will go the resulting hash.");
+	for (uint8_t i = 0; i < 8; i++) {
+		H[i] = initial_hash_value[i];
+	}
+
+	for (const auto& block : message_blocks) {
+		uint32_t a, b, c, d, e, f, g, h, T1, T2, W[64];
+
+		// Prepare the message schedule.
+		for (uint8_t t = 0; t <= 15; t++) {
+			W[t] = block.words[t];
+		}
+		for (uint8_t t = 16; t <= 63; t++) {
+			W[t] = lowerSigma1(W[t - 2]) + W[t - 7] + lowerSigma0(W[t - 15]) + W[t - 16];
+			cout << "---- Round sum ----" << endl;
+			print_binary(lowerSigma1(W[t - 2]));
+			print_binary(W[t - 7]);
+			print_binary(lowerSigma0(W[t - 15]));
+			print_binary(W[t - 16]);
+			print_binary(W[t]);
+			cout << endl << endl;
+		}
+
+		// Initialize working variables.
+		a = H[0];
+		b = H[1];
+		c = H[2];
+		d = H[3];
+		e = H[4];
+		f = H[5];
+		g = H[6];
+		h = H[7];
+
+		// Compression function.
+		for (uint8_t t = 0; t < 64; t++) {
+			T1 = h + upperSigma1(e) + choose(e, f, g) + round_constant[t] + W[t];
+			T2 = upperSigma0(a) + majority(a, b, c);
+			h = g;
+			g = f;
+			f = e;
+			e = d + T1;
+			d = c;
+			c = b;
+			b = a;
+			a = T1 + T2;
+		}
+
+		// Compute intermediate hash value.
+		H[0] = a + H[0];
+		H[1] = b + H[1];
+		H[2] = c + H[2];
+		H[3] = d + H[3];
+		H[4] = e + H[4];
+		H[5] = f + H[5];
+		H[6] = g + H[6];
+		H[7] = h + H[7];
+	}
+
+	cout << "Output hash: " << hex;
+	for (uint8_t i = 0; i < 8; i++) {
+		cout << H[i];
+	}
+	cout << endl;
+}
+
+// ======================================================
+// Hashing functions and operators.
+// ======================================================
+
+uint32_t SHA256::rotr(uint32_t word, uint32_t positions) {
+	return (word >> positions) | (word << (32 - positions));
+}
+
+uint32_t SHA256::choose(uint32_t x, uint32_t y, uint32_t z) {
+	return (x & y) ^ (~x & z);
+}
+
+uint32_t SHA256::majority(uint32_t a, uint32_t b, uint32_t c) {
+	return (a & b) ^ (a & c) ^ (b & c);
+}
+
+uint32_t SHA256::upperSigma0(uint32_t x) {
+	return rotr(x, 2) ^ rotr(x, 13) ^ rotr(x, 22);
+}
+
+uint32_t SHA256::upperSigma1(uint32_t x) {
+	return rotr(x, 6) ^ rotr(x, 11) ^ rotr(x, 25);
+}
+
+uint32_t SHA256::lowerSigma0(uint32_t x) {
+	return rotr(x, 7) ^ rotr(x, 18) ^ (x >> 3);
+}
+
+uint32_t SHA256::lowerSigma1(uint32_t x) {
+	return rotr(x, 17) ^ rotr(x, 19) ^ (x >> 10);
 }
 

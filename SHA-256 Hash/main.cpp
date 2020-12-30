@@ -10,5 +10,5 @@ using std::endl;
 int main()
 {
     SHA256 hash_service;
-    cout << hash_service.hash("abc");
+    cout << hash_service.hash("hola");
 }
