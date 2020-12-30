@@ -1,12 +1,15 @@
 #include "SHA256.h"
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <string>
 
 using std::cout;
 using std::endl;
 using std::hex;
 using std::uppercase;
-
+using std::setfill;
+using std::setw;
 
 void print_binary(uint32_t value) {
 	for (int8_t pos = 31; pos >= 0; pos--) {
@@ -35,14 +38,14 @@ void print_block(Block block) {
 }
 
 std::string SHA256::hash(std::string input) {
+	message_blocks.clear();
+
 	// Preprocessing stage.
 	add_pading(input);
 	parse_message(input);
 
 	// Hash computation.
-	compute_hash();
-
-	return input.append("Here will go the resulting hash.");
+	return compute_hash();
 }
 
 // ======================================================
@@ -101,17 +104,13 @@ void SHA256::parse_message(std::string& input) {
 			}
 		}
 	}
-
-	for (const auto& block : message_blocks) {
-		print_block(block);
-	}
 }
 
 // ======================================================
 // Hash Computation.
 // ======================================================
 
-void SHA256::compute_hash() {
+std::string SHA256::compute_hash() {
 	uint32_t H[8] = { 0 };
 
 	for (uint8_t i = 0; i < 8; i++) {
@@ -127,13 +126,6 @@ void SHA256::compute_hash() {
 		}
 		for (uint8_t t = 16; t <= 63; t++) {
 			W[t] = lowerSigma1(W[t - 2]) + W[t - 7] + lowerSigma0(W[t - 15]) + W[t - 16];
-			cout << "---- Round sum ----" << endl;
-			print_binary(lowerSigma1(W[t - 2]));
-			print_binary(W[t - 7]);
-			print_binary(lowerSigma0(W[t - 15]));
-			print_binary(W[t - 16]);
-			print_binary(W[t]);
-			cout << endl << endl;
 		}
 
 		// Initialize working variables.
@@ -171,11 +163,12 @@ void SHA256::compute_hash() {
 		H[7] = h + H[7];
 	}
 
-	cout << "Output hash: " << hex;
-	for (uint8_t i = 0; i < 8; i++) {
-		cout << H[i];
+	std::stringstream hash_string;
+	for (uint8_t i = 0; i < 8; ++i) {
+		hash_string << setfill('0') << setw(8) << hex << H[i];
 	}
-	cout << endl;
+
+	return hash_string.str();
 }
 
 // ======================================================

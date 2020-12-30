@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 
-// Blocks contain 512 bits (16 words of 32 bits each).
+// Block of 512 bits (16 words of 32 bits each).
 typedef struct block {
 	uint32_t words[16] = { 0 };
 } Block;
@@ -29,7 +29,7 @@ private:
 	// ======================================================
 	// Hash computation.
 	// ======================================================
-	void compute_hash();
+	std::string compute_hash();
 
 	// ======================================================
 	// Hashing functions and operators.
